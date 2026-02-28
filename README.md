@@ -17,14 +17,6 @@ A minimal, elegant meditation timer app built with Kotlin and Jetpack Compose.
 - MVVM Architecture
 - StateFlow for reactive state management
 
-## Building
-
-Open the project in Android Studio and run on an emulator or physical device.
-
-```bash
-./gradlew assembleDebug
-```
-
 ## Future Enhancements
 
 - [ ] Settings screen for customization
