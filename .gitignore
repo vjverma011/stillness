@@ -1,0 +1,18 @@
+.gradle
+build/
+!gradle-wrapper.jar
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Local configuration file
+local.properties
+
+# Android Studio
+.idea/
+*.iml
+.DS_Store
+
+# Generated files
+app/release/
+*.apk
+*.aab
