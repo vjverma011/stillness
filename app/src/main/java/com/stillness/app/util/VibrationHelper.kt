@@ -5,6 +5,7 @@ import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
+import android.util.Log
 
 object VibrationHelper {
     
@@ -25,6 +26,8 @@ object VibrationHelper {
     
     @Suppress("DEPRECATION")
     fun vibrate(context: Context, pattern: VibrationPattern = VibrationPattern.GENTLE, repeat: Int = 0) {
+        Log.d("VibrationHelper", "Vibrating with pattern: ${pattern.displayName}, repeat: $repeat")
+        
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator
@@ -32,7 +35,10 @@ object VibrationHelper {
             context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
         }
         
-        if (!vibrator.hasVibrator()) return
+        if (!vibrator.hasVibrator()) {
+            Log.d("VibrationHelper", "No vibrator available on this device/emulator")
+            return
+        }
         
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             vibrator.vibrate(VibrationEffect.createWaveform(pattern.pattern, repeat))
@@ -43,6 +49,8 @@ object VibrationHelper {
     
     @Suppress("DEPRECATION")
     fun cancel(context: Context) {
+        Log.d("VibrationHelper", "Cancelling vibration")
+        
         val vibrator = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
             val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
             vibratorManager.defaultVibrator

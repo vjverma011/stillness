@@ -16,21 +16,24 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.stillness.app.ui.components.*
 import com.stillness.app.ui.theme.*
 import com.stillness.app.util.VibrationHelper
+import com.stillness.app.viewmodel.SettingsViewModel
 import com.stillness.app.viewmodel.TimerViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TimerScreen(
     onNavigateToSettings: () -> Unit = {},
-    viewModel: TimerViewModel = viewModel()
+    viewModel: TimerViewModel = viewModel(),
+    settingsViewModel: SettingsViewModel = viewModel()
 ) {
     val timerState by viewModel.timerState.collectAsState()
+    val selectedPattern by settingsViewModel.vibrationPattern.collectAsState()
     val context = LocalContext.current
     
-    // Handle timer completion
+    // Handle timer completion - use user's selected vibration pattern
     LaunchedEffect(timerState.isCompleted) {
         if (timerState.isCompleted) {
-            VibrationHelper.vibrate(context, VibrationHelper.VibrationPattern.GENTLE, repeat = 2)
+            VibrationHelper.vibrate(context, selectedPattern, repeat = 2)
         }
     }
     
