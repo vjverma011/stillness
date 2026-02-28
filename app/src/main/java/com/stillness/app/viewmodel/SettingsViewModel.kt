@@ -18,7 +18,7 @@ class SettingsViewModel(application: Application) : AndroidViewModel(application
         preferencesManager.vibrationPatternFlow.stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
-            initialValue = VibrationHelper.VibrationPattern.GENTLE
+            initialValue = VibrationHelper.VibrationPattern.GENTLE_PULSE
         )
 
     val isDarkTheme: StateFlow<Boolean> =

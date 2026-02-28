@@ -1,8 +1,8 @@
 package com.stillness.app.ui.components
 
-import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -14,25 +14,34 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.stillness.app.ui.theme.*
 
 @Composable
 fun StartButton(
+    modifier: Modifier = Modifier,
     isRunning: Boolean,
     isPaused: Boolean,
     onStart: () -> Unit,
     onPause: () -> Unit,
     onResume: () -> Unit,
     onStop: () -> Unit,
-    enabled: Boolean = true,
-    modifier: Modifier = Modifier
+    enabled: Boolean = true
 ) {
     val buttonText = when {
         isRunning && !isPaused -> "PAUSE"
         isPaused -> "RESUME"
         else -> "START"
     }
+
+    // Responsive button size based on screen
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
+    val smallestDimension = if (screenWidth < screenHeight) screenWidth else screenHeight
+    val buttonSize = (smallestDimension * 0.23f).coerceIn(72.dp, 120.dp)
+    val glowSize = buttonSize * 1.2f
     
     // Subtle scale animation on press
     val scale by animateFloatAsState(
@@ -54,6 +63,11 @@ fun StartButton(
     )
     
     val showGlow = !isRunning && enabled
+
+    // Theme-aware colors
+    val disabledButtonColor = MaterialTheme.colorScheme.surfaceVariant
+    val enabledTextColor = MaterialTheme.colorScheme.background
+    val disabledTextColor = MaterialTheme.colorScheme.outline
     
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -63,13 +77,13 @@ fun StartButton(
             contentAlignment = Alignment.Center,
             modifier = Modifier
                 .scale(scale)
-                .size(100.dp)
+                .size(buttonSize)
         ) {
             // Glow effect
             if (showGlow) {
                 Box(
                     modifier = Modifier
-                        .size(120.dp)
+                        .size(glowSize)
                         .clip(CircleShape)
                         .background(
                             Brush.radialGradient(
@@ -86,7 +100,7 @@ fun StartButton(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(100.dp)
+                    .size(buttonSize)
                     .clip(CircleShape)
                     .background(
                         if (enabled) {
@@ -95,7 +109,7 @@ fun StartButton(
                             )
                         } else {
                             Brush.linearGradient(
-                                colors = listOf(ButtonBackground, ButtonBackground)
+                                colors = listOf(disabledButtonColor, disabledButtonColor)
                             )
                         }
                     )
@@ -110,14 +124,14 @@ fun StartButton(
                 Text(
                     text = buttonText,
                     style = MaterialTheme.typography.labelLarge,
-                    color = if (enabled) DarkBackground else TextMuted
+                    color = if (enabled) enabledTextColor else disabledTextColor
                 )
             }
         }
         
         // Stop button (shown when running or paused)
         if (isRunning || isPaused) {
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(12.dp))
             
             Text(
                 text = "STOP",
@@ -125,6 +139,7 @@ fun StartButton(
                 color = AccentCoral,
                 modifier = Modifier
                     .clip(CircleShape)
+                    .border(width = 1.dp, color = AccentCoral.copy(alpha = 0.5f), shape = CircleShape)
                     .clickable(onClick = onStop)
                     .padding(horizontal = 16.dp, vertical = 8.dp)
             )

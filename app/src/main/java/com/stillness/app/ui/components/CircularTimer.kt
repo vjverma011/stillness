@@ -13,6 +13,8 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.stillness.app.ui.theme.*
@@ -29,7 +31,24 @@ fun CircularTimer(
     } else {
         1f
     }
-    
+
+    // Calculate responsive size based on screen dimensions
+    val configuration = LocalConfiguration.current
+    val screenWidth = configuration.screenWidthDp.dp
+    val screenHeight = configuration.screenHeightDp.dp
+    val smallestDimension = if (screenWidth < screenHeight) screenWidth else screenHeight
+    // Timer ring takes up ~65% of the smallest dimension, clamped between 180dp and 360dp
+    val timerSize = (smallestDimension * 0.65f).coerceIn(180.dp, 360.dp)
+    // Stroke scales proportionally
+    val strokeDp = (timerSize * 0.043f).coerceIn(8.dp, 16.dp)
+    // Font size scales with timer size (approx 25% of timer diameter)
+    val timerFontSize = with(LocalDensity.current) {
+        (timerSize * 0.25f).toSp()
+    }
+    val subtitleFontSize = with(LocalDensity.current) {
+        (timerSize * 0.05f).coerceAtLeast(10.dp).toSp()
+    }
+
     // Subtle pulsing animation when running
     val infiniteTransition = rememberInfiniteTransition(label = "pulse")
     val pulseAlpha by infiniteTransition.animateFloat(
@@ -43,14 +62,19 @@ fun CircularTimer(
     )
     
     val displayAlpha = if (isRunning) pulseAlpha else 1f
+
+    // Capture theme colors for use inside Canvas (which has no access to MaterialTheme)
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+    val timerTextColor = MaterialTheme.colorScheme.onBackground
+    val subtitleTextColor = MaterialTheme.colorScheme.outline
     
     Box(
         contentAlignment = Alignment.Center,
-        modifier = modifier.size(280.dp)
+        modifier = modifier.size(timerSize)
     ) {
         // Background ring
         Canvas(modifier = Modifier.fillMaxSize()) {
-            val strokeWidth = 12.dp.toPx()
+            val strokeWidth = strokeDp.toPx()
             val radius = (size.minDimension - strokeWidth) / 2
             val topLeft = Offset(
                 (size.width - radius * 2) / 2,
@@ -59,7 +83,7 @@ fun CircularTimer(
             
             // Background track
             drawArc(
-                color = ButtonBackground.copy(alpha = 0.3f),
+                color = trackColor,
                 startAngle = -90f,
                 sweepAngle = 360f,
                 useCenter = false,
@@ -94,15 +118,21 @@ fun CircularTimer(
         ) {
             Text(
                 text = formatTime(remainingTimeMillis),
-                style = MaterialTheme.typography.displayLarge,
-                color = TextPrimary.copy(alpha = displayAlpha),
-                textAlign = TextAlign.Center
+                style = MaterialTheme.typography.displayLarge.copy(
+                    fontSize = timerFontSize,
+                    lineHeight = timerFontSize * 1.1f
+                ),
+                color = timerTextColor.copy(alpha = displayAlpha),
+                textAlign = TextAlign.Center,
+                maxLines = 1
             )
             if (isRunning) {
                 Text(
                     text = "remaining",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = TextMuted,
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = subtitleFontSize
+                    ),
+                    color = subtitleTextColor,
                     textAlign = TextAlign.Center
                 )
             }
@@ -115,7 +145,7 @@ fun formatTime(millis: Long): String {
     val hours = totalSeconds / 3600
     val minutes = (totalSeconds % 3600) / 60
     val seconds = totalSeconds % 60
-    
+
     return if (hours > 0) {
         String.format("%d:%02d:%02d", hours, minutes, seconds)
     } else {

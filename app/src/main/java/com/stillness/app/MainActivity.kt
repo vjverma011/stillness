@@ -1,29 +1,46 @@
 package com.stillness.app
 
+import android.Manifest
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.stillness.app.service.TimerForegroundService
 import com.stillness.app.ui.screens.SettingsScreen
 import com.stillness.app.ui.screens.TimerScreen
 import com.stillness.app.ui.theme.StillnessTheme
 import com.stillness.app.viewmodel.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
+
+    // Launcher for POST_NOTIFICATIONS runtime permission (API 33+)
+    private val notificationPermissionLauncher =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { /* granted or not — we proceed either way */ }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        
+
+        // Create the notification channel once (idempotent)
+        TimerForegroundService.createNotificationChannel(this)
+
+        // Request notification permission on API 33+
+        requestNotificationPermissionIfNeeded()
+
         setContent {
             // SettingsViewModel is scoped to the Activity so both screens share it
             val settingsViewModel: SettingsViewModel = viewModel()
@@ -58,6 +75,17 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+            }
+        }
+    }
+
+    private fun requestNotificationPermissionIfNeeded() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            if (ContextCompat.checkSelfPermission(
+                    this, Manifest.permission.POST_NOTIFICATIONS
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
             }
         }
     }

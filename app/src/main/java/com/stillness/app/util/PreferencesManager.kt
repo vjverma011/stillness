@@ -20,11 +20,12 @@ class PreferencesManager(private val context: Context) {
     }
 
     val vibrationPatternFlow: Flow<VibrationHelper.VibrationPattern> = context.dataStore.data.map { preferences ->
-        val patternName = preferences[VIBRATION_PATTERN_KEY] ?: VibrationHelper.VibrationPattern.GENTLE.name
+        val patternName = preferences[VIBRATION_PATTERN_KEY] ?: VibrationHelper.VibrationPattern.GENTLE_PULSE.name
         try {
             VibrationHelper.VibrationPattern.valueOf(patternName)
         } catch (e: IllegalArgumentException) {
-            VibrationHelper.VibrationPattern.GENTLE
+            // Fallback for renamed or removed patterns (e.g. old "GENTLE" → "GENTLE_PULSE")
+            VibrationHelper.VibrationPattern.GENTLE_PULSE
         }
     }
 

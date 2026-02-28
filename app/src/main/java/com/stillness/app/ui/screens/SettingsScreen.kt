@@ -5,8 +5,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Check
@@ -16,6 +18,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -33,6 +36,14 @@ fun SettingsScreen(
     val isDarkTheme by settingsViewModel.isDarkTheme.collectAsState()
     val context = LocalContext.current
 
+    // Adaptive padding
+    val screenWidth = LocalConfiguration.current.screenWidthDp.dp
+    val horizontalPadding = (screenWidth * 0.06f).coerceIn(12.dp, 32.dp)
+
+    // Split patterns into groups
+    val continuousPatterns = VibrationHelper.VibrationPattern.entries.filter { it.repeating }
+    val autoStopPatterns = VibrationHelper.VibrationPattern.entries.filter { !it.repeating }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -49,8 +60,11 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(24.dp)
+                .windowInsetsPadding(WindowInsets.systemBars)
+                .padding(horizontal = horizontalPadding)
         ) {
+            Spacer(modifier = Modifier.height(horizontalPadding / 2))
+
             // Top bar with back arrow
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -73,105 +87,164 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(24.dp))
 
-            // -- Vibration Pattern Section --
-            Text(
-                text = "VIBRATION PATTERN",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
-            )
-
+            // Scrollable content area
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState())
             ) {
-                VibrationHelper.VibrationPattern.entries.forEachIndexed { index, pattern ->
-                    VibrationPatternItem(
-                        pattern = pattern,
-                        isSelected = pattern == selectedPattern,
-                        onClick = {
-                            settingsViewModel.setVibrationPattern(pattern)
-                            // Preview the vibration pattern (logs to Logcat on emulator)
-                            VibrationHelper.vibrate(context, pattern, repeat = -1)
-                        }
-                    )
+                // ── Continuous Patterns Section ─────────────────────
+                Text(
+                    text = "CONTINUOUS PATTERNS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                )
+                Text(
+                    text = "Loop until you dismiss the completion screen",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
+                )
 
-                    if (index < VibrationHelper.VibrationPattern.entries.size - 1) {
-                        HorizontalDivider(
-                            modifier = Modifier.padding(horizontal = 16.dp),
-                            color = MaterialTheme.colorScheme.surfaceVariant,
-                            thickness = 0.5.dp
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    continuousPatterns.forEachIndexed { index, pattern ->
+                        VibrationPatternItem(
+                            pattern = pattern,
+                            isSelected = pattern == selectedPattern,
+                            onClick = {
+                                settingsViewModel.setVibrationPattern(pattern)
+                                // Preview: play once (no looping) so user gets a taste
+                                VibrationHelper.vibrate(context, pattern, repeatOverride = -1)
+                            }
                         )
+
+                        if (index < continuousPatterns.size - 1) {
+                            Divider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                thickness = 0.5.dp
+                            )
+                        }
                     }
                 }
-            }
 
-            Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(24.dp))
 
-            Text(
-                text = "Tap a pattern to preview and select it. Check Logcat for vibration logs on emulator.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp)
-            )
+                // ── Auto-Stop Patterns Section ──────────────────────
+                Text(
+                    text = "AUTO-STOP PATTERNS",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 4.dp)
+                )
+                Text(
+                    text = "Play a set number of times, then go silent",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
+                )
 
-            Spacer(modifier = Modifier.height(32.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                ) {
+                    autoStopPatterns.forEachIndexed { index, pattern ->
+                        VibrationPatternItem(
+                            pattern = pattern,
+                            isSelected = pattern == selectedPattern,
+                            onClick = {
+                                settingsViewModel.setVibrationPattern(pattern)
+                                // Auto-stop patterns play their full sequence naturally
+                                VibrationHelper.vibrate(context, pattern)
+                            }
+                        )
 
-            // -- Appearance Section --
-            Text(
-                text = "APPEARANCE",
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
-            )
+                        if (index < autoStopPatterns.size - 1) {
+                            Divider(
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                color = MaterialTheme.colorScheme.surfaceVariant,
+                                thickness = 0.5.dp
+                            )
+                        }
+                    }
+                }
 
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MaterialTheme.colorScheme.surface)
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column {
-                    Text(
-                        text = "Dark Theme",
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Spacer(modifier = Modifier.height(2.dp))
-                    Text(
-                        text = if (isDarkTheme) "Currently using dark theme" else "Currently using light theme",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Text(
+                    text = "Tap a pattern to preview and select it.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp)
+                )
+
+                Spacer(modifier = Modifier.height(32.dp))
+
+                // -- Appearance Section --
+                Text(
+                    text = "APPEARANCE",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 12.dp)
+                )
+
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MaterialTheme.colorScheme.surface)
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = "Dark Theme",
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                        Spacer(modifier = Modifier.height(2.dp))
+                        Text(
+                            text = if (isDarkTheme) "Currently using dark theme" else "Currently using light theme",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    Switch(
+                        checked = isDarkTheme,
+                        onCheckedChange = { settingsViewModel.setDarkTheme(it) },
+                        colors = SwitchDefaults.colors(
+                            checkedThumbColor = AccentLavender,
+                            checkedTrackColor = AccentLavenderDark,
+                            uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                        )
                     )
                 }
 
-                Switch(
-                    checked = isDarkTheme,
-                    onCheckedChange = { settingsViewModel.setDarkTheme(it) },
-                    colors = SwitchDefaults.colors(
-                        checkedThumbColor = AccentLavender,
-                        checkedTrackColor = AccentLavenderDark,
-                        uncheckedThumbColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                )
+                Spacer(modifier = Modifier.height(32.dp))
             }
 
-            Spacer(modifier = Modifier.weight(1f))
-
-            // App version footer
+            // App version footer (stays at bottom)
             Text(
-                text = "Stillness v1.0",
+                text = "Stillness v0.1",
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.align(Alignment.CenterHorizontally)
+                modifier = Modifier
+                    .align(Alignment.CenterHorizontally)
+                    .padding(bottom = 8.dp)
             )
         }
     }
@@ -201,7 +274,7 @@ private fun VibrationPatternItem(
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Column {
+        Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = pattern.displayName,
                 style = MaterialTheme.typography.labelLarge,
@@ -216,6 +289,7 @@ private fun VibrationPatternItem(
         }
 
         if (isSelected) {
+            Spacer(modifier = Modifier.width(12.dp))
             Box(
                 modifier = Modifier
                     .size(28.dp)
@@ -226,7 +300,7 @@ private fun VibrationPatternItem(
                 Icon(
                     imageVector = Icons.Default.Check,
                     contentDescription = "Selected",
-                    tint = TextPrimary,
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(16.dp)
                 )
             }
@@ -236,9 +310,12 @@ private fun VibrationPatternItem(
 
 private fun patternDescription(pattern: VibrationHelper.VibrationPattern): String {
     return when (pattern) {
-        VibrationHelper.VibrationPattern.GENTLE -> "Soft, evenly spaced pulses"
-        VibrationHelper.VibrationPattern.PULSE -> "Quick succession of short bursts"
+        VibrationHelper.VibrationPattern.GENTLE_PULSE -> "Soft, evenly spaced pulses"
+        VibrationHelper.VibrationPattern.QUICK_PULSE -> "Quick succession of short bursts"
         VibrationHelper.VibrationPattern.WAVE -> "Gradually lengthening pulses"
         VibrationHelper.VibrationPattern.ESCALATING -> "Increasing intensity over time"
+        VibrationHelper.VibrationPattern.GENTLE_BELLS -> "Three sets of soft double-taps"
+        VibrationHelper.VibrationPattern.TRIPLE_CHIME -> "Five sets of three firm pulses"
+        VibrationHelper.VibrationPattern.FADE_OUT -> "Four bursts that fade to silence"
     }
 }

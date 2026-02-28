@@ -5,14 +5,14 @@ plugins {
 
 android {
     namespace = "com.stillness.app"
-    compileSdk = 34
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.stillness.app"
         minSdk = 26
         targetSdk = 34
         versionCode = 1
-        versionName = "1.0"
+        versionName = "0.1"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables {
@@ -62,6 +62,9 @@ dependencies {
     
     // ViewModel
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+    
+    // Lifecycle Service (for foreground service)
+    implementation("androidx.lifecycle:lifecycle-service:2.6.2")
     
     // DataStore for preferences
     implementation("androidx.datastore:datastore-preferences:1.0.0")
